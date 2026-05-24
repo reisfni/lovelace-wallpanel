@@ -3013,17 +3013,23 @@ function initWallpanel() {
 							page++;
 						}
 						allPeople.forEach((person) => {
-							personNameToId[person.name.toLowerCase()] = person.id;
+							if (person.name && person.id) {
+								personNameToId[person.name.toLowerCase()] = person.id;
+							}
 						});
-
+						
 						// Fetch assets for each person/group criteria
 						for (const personNames of orPersonNames) {
-							const personIds = personNames
-								.map((name) => personNameToId[name])
-								.filter((id) => {
-									if (!id) logger.error(`Person not found in immich: ${name}`);
-									return !!id;
-								});
+							let personIds = [];
+							personNames.forEach((personName) => {
+								const personId = personNameToId[personName.toLowerCase()];
+								if (personId) {
+									personIds.push(personId);
+								}
+								else {
+									logger.error(`Person not found in immich: ${personName}`);
+								}
+							});
 
 							if (personIds.length > 0) {
 								logger.debug("Searching asset metadata for persons: ", personIds);
