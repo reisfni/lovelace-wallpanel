@@ -390,6 +390,9 @@ class ScreenWakeLock {
 			logger.debug("handleVisibilityChange");
 			if (this.enabled && !document.hidden) {
 				this.enable();
+				// CSS vw/vh viewport units in iOS WKWebView report stale values after the app is backgrounded and restored.
+				// They do not recompute until a resize event fires, which does not happen reliably on app resume.
+				window.dispatchEvent(new Event("resize"));
 			}
 		};
 		document.addEventListener("visibilitychange", handleVisibilityChange);
