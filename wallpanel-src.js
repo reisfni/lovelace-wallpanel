@@ -2538,9 +2538,10 @@ function initWallpanel() {
 				// When image_url is configured as a media-source:// URI (e.g. media-source://media_source/local/),
 				// mediaUrl gets resolved to a full HTTP URL that won't match config.image_url.
 				// Use infoCacheUrl (which retains the original media-source:// URI) for that case.
-				const baseUrl = mediaSourceType() === "media-source"
-					? infoCacheUrl.replace(/\?[^?]*$/, "").replace(/\/+$/, "")
-					: mediaUrlWithoutQuery;
+				const baseUrl =
+					mediaSourceType() === "media-source"
+						? infoCacheUrl.replace(/\?[^?]*$/, "").replace(/\/+$/, "")
+						: mediaUrlWithoutQuery;
 				mediaInfo.image.relativePath = baseUrl.replace(config.image_url, "").replace(/^\/+/, "");
 			}
 			if (mediaInfo.image.filename === undefined) {
@@ -3017,16 +3018,15 @@ function initWallpanel() {
 								personNameToId[person.name.toLowerCase()] = person.id;
 							}
 						});
-						
+
 						// Fetch assets for each person/group criteria
 						for (const personNames of orPersonNames) {
-							let personIds = [];
+							const personIds = [];
 							personNames.forEach((personName) => {
 								const personId = personNameToId[personName.toLowerCase()];
 								if (personId) {
 									personIds.push(personId);
-								}
-								else {
+								} else {
 									logger.error(`Person not found in immich: ${personName}`);
 								}
 							});
