@@ -1207,6 +1207,7 @@ function initWallpanel() {
 			this.updatingMediaList = false;
 			this.updatingMedia = false;
 			this.lastMediaUpdate = 0;
+			this.lastImageUrlEntityValue = null;
 			this.blockEventsUntil = 0;
 			this.screensaverStartedAt;
 			this.screensaverStoppedAt = new Date();
@@ -1334,7 +1335,7 @@ function initWallpanel() {
 			if (!activeElement || !activeElement.mediaUrl) return;
 			// Maximum length for input_text entity is 255
 			const mediaUrl = activeElement.mediaUrl.substring(0, 255);
-			if (activeElement._lastImageURLEntityValue === mediaUrl) {
+			if (this.lastImageUrlEntityValue === mediaUrl) {
 				return;
 			}
 
@@ -1347,7 +1348,7 @@ function initWallpanel() {
 				.then(
 					(result) => {
 						logger.debug(result);
-						activeElement._lastImageURLEntityValue = mediaUrl;
+						this.lastImageUrlEntityValue = mediaUrl;
 					},
 					(error) => {
 						logger.error("Failed to set image url entity state:", error);
