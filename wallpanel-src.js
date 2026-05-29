@@ -4132,6 +4132,36 @@ function initWallpanel() {
 			this.switchActiveMedia("user_action");
 		}
 
+		async nextImage() {
+			if (this.updatingMedia) {
+				logger.debug("Already switching media");
+				return;
+			}
+			logger.debug("Next image");
+			const prevDirection = this.mediaListDirection;
+			this.mediaListDirection = "forwards";
+			try {
+				await this.switchActiveMedia("user_action");
+			} finally {
+				this.mediaListDirection = prevDirection;
+			}
+		}
+
+		async previousImage() {
+			if (this.updatingMedia) {
+				logger.debug("Already switching media");
+				return;
+			}
+			logger.debug("Previous image");
+			const prevDirection = this.mediaListDirection;
+			this.mediaListDirection = "backwards";
+			try {
+				await this.switchActiveMedia("user_action");
+			} finally {
+				this.mediaListDirection = prevDirection;
+			}
+		}
+
 		setCameraMotionDetectionEntityState(state) {
 			const entity = config.camera_motion_detection_set_entity;
 			if (!entity || !this.__hass.states[entity]) return;
