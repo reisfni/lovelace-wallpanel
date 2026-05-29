@@ -3,7 +3,7 @@
  * Released under the GNU General Public License v3.0
  */
 
-const version = "4.63.1";
+const version = "4.64.0";
 const defaultConfig = {
 	enabled: false,
 	enabled_on_views: [],
@@ -102,6 +102,7 @@ const defaultConfig = {
 	camera_motion_detection_capture_height: 48,
 	camera_motion_detection_capture_interval: 0.3,
 	camera_motion_detection_capture_visible: false,
+	camera_motion_detection_motion_start_delay: 0.0,
 	camera_motion_detection_motion_stop_delay: 2.0,
 	theme: "",
 	custom_css: "",
@@ -496,18 +497,48 @@ class ScreenWakeLock {
 }
 
 class CameraMotionDetection {
+	/*
+	The algorithm keeps two comparisons for every captured frame:
+
+	`referenceChangeRatios`:
+		Compares the current frame to a stored reference image.
+		This is used to detect presence/motion.
+		If the scene stays different from the reference for `motionStartDelay` seconds, this is considered motion.
+	`previousChangeRatios`:
+		Compares the current frame to the previous frame.
+		This is used to detect whether the scene has become stable.
+		If the scene stays stable for the 60-second history window, the current frame can become the new reference image.
+
+	A quick person passing the camera creates only a short reference difference, so it is ignored when `motionStartDelay` is configured.
+	A person standing still is still detected because the image remains different from the reference, even when frame-to-frame movement stops.
+	If no movement is detected at all when comparing the current images with the previous images within the 60-second window,
+	it is assumed that the camera has been moved or that objects in the room have shifted; this results in the reference image being reset to prevent
+	the "motion detected" status from becoming stuck.
+
+	`motionStartDelay` defaults to `0`, so existing behavior remains immediate unless configured otherwise.
+	*/
+
 	constructor() {
 		this.enabled = false;
 		this.error = false;
 		this.width = 64;
 		this.height = 48;
-		this.threshold = this.width * this.height * 0.05;
+		this.thresholdRatio = 0.05;
+		this.threshold = this.width * this.height * this.thresholdRatio;
 		this.captureInterval = 300;
 
 		this.motionActive = false;
+		this.motionStartDelay = 0; // ms (default)
 		this.motionStopDelay = 2000; // ms (default)
+		this.motionDetectionRequiredRatio = 0.8;
+		this.roomSettledRequiredRatio = 1.0;
 		this.motionStopTimeout = null;
 		this.captureTimer = null;
+		this.referenceImageData = null;
+		this.previousImageData = null;
+		this.referenceChangeRatios = [];
+		this.previousChangeRatios = [];
+		this.maxRatioHistorySize = Math.ceil(60000 / this.captureInterval);
 
 		this.videoElement = document.createElement("video");
 		this.videoElement.setAttribute("id", "wallpanelMotionDetectionVideo");
@@ -523,42 +554,95 @@ class CameraMotionDetection {
 		this._elementsAppended = true;
 	}
 
-	capture() {
+	compareImageData(imageData, compareImageData) {
+		if (!imageData || !compareImageData) {
+			return 0;
+		}
+
 		let diffPixels = 0;
-
-		this.context.globalCompositeOperation = "difference";
-		this.context.drawImage(this.videoElement, 0, 0, this.width, this.height);
-
-		const diffImageData = this.context.getImageData(0, 0, this.width, this.height);
-		const rgba = diffImageData.data;
+		const rgba = imageData.data;
+		const compareRgba = compareImageData.data;
 
 		for (let i = 0; i < rgba.length; i += 4) {
-			const pixelDiff = rgba[i] + rgba[i + 1] + rgba[i + 2];
+			const pixelDiff = Math.abs(rgba[i] - compareRgba[i]) + Math.abs(rgba[i + 1] - compareRgba[i + 1]) + Math.abs(rgba[i + 2] - compareRgba[i + 2]);
 			if (pixelDiff >= 256) {
 				diffPixels++;
-				if (diffPixels >= this.threshold) {
-					break;
-				}
 			}
 		}
 
-		const motionDetected = diffPixels >= this.threshold;
+		return diffPixels / (this.width * this.height);
+	}
+
+	storeRatio(ratios, ratio) {
+		ratios.push(ratio);
+		while (ratios.length > this.maxRatioHistorySize) {
+			ratios.shift();
+		}
+	}
+
+	getRatiosForInterval(ratios, interval) {
+		const ratioCount = Math.max(1, Math.ceil(interval / this.captureInterval));
+		if (ratios.length < ratioCount) {
+			return [];
+		}
+		return ratios.slice(-ratioCount);
+	}
+
+	hasRequiredRatioAboveThreshold(ratios, requiredRatio) {
+		return ratios.length > 0 && ratios.filter((ratio) => ratio >= this.thresholdRatio).length / ratios.length >= requiredRatio;
+	}
+
+	hasRequiredRatioBelowThreshold(ratios, requiredRatio) {
+		return ratios.length > 0 && ratios.filter((ratio) => ratio < this.thresholdRatio).length / ratios.length >= requiredRatio;
+	}
+
+	resetMotionState() {
+		this.motionActive = false;
+		if (this.motionStopTimeout) {
+			clearTimeout(this.motionStopTimeout);
+			this.motionStopTimeout = null;
+		}
+		this.referenceImageData = null;
+		this.previousImageData = null;
+		this.referenceChangeRatios = [];
+		this.previousChangeRatios = [];
+	}
+
+	capture() {
+		this.context.globalCompositeOperation = "source-over";
+		this.context.drawImage(this.videoElement, 0, 0, this.width, this.height);
+
+		const currentImageData = this.context.getImageData(0, 0, this.width, this.height);
+
+		if (!this.referenceImageData) {
+			this.referenceImageData = currentImageData;
+			this.previousImageData = currentImageData;
+			return;
+		}
+
+		const referenceChangeRatio = this.compareImageData(currentImageData, this.referenceImageData);
+		const previousChangeRatio = this.compareImageData(currentImageData, this.previousImageData);
+		this.previousImageData = currentImageData;
+
+		this.storeRatio(this.referenceChangeRatios, referenceChangeRatio);
+		this.storeRatio(this.previousChangeRatios, previousChangeRatio);
+
+		const motionDetectionRatios = this.getRatiosForInterval(this.referenceChangeRatios, this.motionStartDelay);
+		const motionDetected = this.hasRequiredRatioAboveThreshold(motionDetectionRatios, this.motionDetectionRequiredRatio);
+		const roomSettled = this.previousChangeRatios.length >= this.maxRatioHistorySize && this.hasRequiredRatioBelowThreshold(this.previousChangeRatios, this.roomSettledRequiredRatio);
 
 		if (motionDetected) {
-			// Motion started or continues
 			if (!this.motionActive) {
 				logger.debug("Motion started");
 				this.motionActive = true;
 				wallpanel.motionDetected();
 			}
 
-			// Cancel any pending stop
 			if (this.motionStopTimeout) {
 				clearTimeout(this.motionStopTimeout);
 				this.motionStopTimeout = null;
 			}
 		} else if (this.motionActive && !this.motionStopTimeout) {
-			// Motion might have stopped — debounce it
 			this.motionStopTimeout = setTimeout(() => {
 				logger.debug("Motion stopped");
 				this.motionActive = false;
@@ -567,8 +651,12 @@ class CameraMotionDetection {
 			}, this.motionStopDelay);
 		}
 
-		this.context.globalCompositeOperation = "source-over";
-		this.context.drawImage(this.videoElement, 0, 0, this.width, this.height);
+		
+		if (roomSettled) {
+			logger.info("Room settled, new reference image stored");
+			this.referenceImageData = currentImageData;
+			this.referenceChangeRatios = [];
+		}
 	}
 
 	start() {
@@ -591,9 +679,13 @@ class CameraMotionDetection {
 		this.enabled = true;
 		this.width = config.camera_motion_detection_capture_width;
 		this.height = config.camera_motion_detection_capture_height;
-		this.threshold = this.width * this.height * config.camera_motion_detection_threshold * 0.01;
+		this.thresholdRatio = config.camera_motion_detection_threshold * 0.01;
+		this.threshold = this.width * this.height * this.thresholdRatio;
 		this.captureInterval = config.camera_motion_detection_capture_interval * 1000;
+		this.motionStartDelay = config.camera_motion_detection_motion_start_delay * 1000;
 		this.motionStopDelay = config.camera_motion_detection_motion_stop_delay * 1000;
+		this.maxRatioHistorySize = Math.ceil(60000 / this.captureInterval);
+		this.resetMotionState();
 
 		this.videoElement.width = this.width;
 		this.videoElement.height = this.height;
@@ -647,6 +739,7 @@ class CameraMotionDetection {
 			return;
 		}
 		this.enabled = false;
+		this.resetMotionState();
 		if (this.captureTimer) {
 			clearInterval(this.captureTimer);
 			this.captureTimer = null;
@@ -1379,7 +1472,9 @@ function initWallpanel() {
 				}
 			} else if (isActive()) {
 				if (config.idle_time > 0 && Date.now() - this.idleSince >= config.idle_time * 1000) {
-					this.startScreensaver();
+					if (!config.camera_motion_detection_stop_screensaver || !this.cameraMotionDetection || !this.cameraMotionDetection.motionActive) {
+						this.startScreensaver();
+					}
 				}
 			}
 		}
