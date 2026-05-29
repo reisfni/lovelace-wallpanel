@@ -4158,7 +4158,7 @@ function initWallpanel() {
 		}
 
 		motionDetected() {
-			if (config.camera_motion_detection_stop_screensaver) {
+			if (config.camera_motion_detection_stop_screensaver && this.screensaverRunning()) {
 				this.stopScreensaver(config.fade_out_time_motion_detected);
 			}
 			this.setCameraMotionDetectionEntityState(true);
