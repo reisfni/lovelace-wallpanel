@@ -103,7 +103,8 @@ You can set the following configuration parameters for every individual Home Ass
 | camera_motion_detection_set_entity       | An entity of type 'input_boolean' to update with the motion detection state (on = motion detected, off = no motion detected). | | 
 | camera_motion_detection_facing_mode      | Which camera to use (user / environment / left / right).                                       | user       |
 | camera_motion_detection_threshold        | If this many percent of the pixels change between two images, this is counted as movement.     | 5          |
-| camera_motion_detection_motion_stop_delay | The time in seconds to wait after motion stops before resetting the state to no motion detected. | 2.0     |
+| camera_motion_detection_motion_start_delay | The time interval, in seconds, during which motion must be detected before the "motion detected" status is set. | 0.0     |
+| camera_motion_detection_motion_stop_delay | The time in seconds to wait after motion stops before resetting the status to "no motion detected". | 2.0     |
 | camera_motion_detection_capture_width    | Width of the images captured by the camera in pixels.                                          | 64         |
 | camera_motion_detection_capture_height   | Height of the images captured by the camera in pixels.                                         | 48         |
 | camera_motion_detection_capture_interval | Interval in seconds at which images are captured by the camera.                                | 0.3        |
