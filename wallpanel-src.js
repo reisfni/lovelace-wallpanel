@@ -564,7 +564,10 @@ class CameraMotionDetection {
 		const compareRgba = compareImageData.data;
 
 		for (let i = 0; i < rgba.length; i += 4) {
-			const pixelDiff = Math.abs(rgba[i] - compareRgba[i]) + Math.abs(rgba[i + 1] - compareRgba[i + 1]) + Math.abs(rgba[i + 2] - compareRgba[i + 2]);
+			const pixelDiff =
+				Math.abs(rgba[i] - compareRgba[i]) +
+				Math.abs(rgba[i + 1] - compareRgba[i + 1]) +
+				Math.abs(rgba[i + 2] - compareRgba[i + 2]);
 			if (pixelDiff >= 256) {
 				diffPixels++;
 			}
@@ -589,11 +592,16 @@ class CameraMotionDetection {
 	}
 
 	hasRequiredRatioAboveThreshold(ratios, requiredRatio) {
-		return ratios.length > 0 && ratios.filter((ratio) => ratio >= this.thresholdRatio).length / ratios.length >= requiredRatio;
+		return (
+			ratios.length > 0 &&
+			ratios.filter((ratio) => ratio >= this.thresholdRatio).length / ratios.length >= requiredRatio
+		);
 	}
 
 	hasRequiredRatioBelowThreshold(ratios, requiredRatio) {
-		return ratios.length > 0 && ratios.filter((ratio) => ratio < this.thresholdRatio).length / ratios.length >= requiredRatio;
+		return (
+			ratios.length > 0 && ratios.filter((ratio) => ratio < this.thresholdRatio).length / ratios.length >= requiredRatio
+		);
 	}
 
 	resetMotionState() {
@@ -628,8 +636,13 @@ class CameraMotionDetection {
 		this.storeRatio(this.previousChangeRatios, previousChangeRatio);
 
 		const motionDetectionRatios = this.getRatiosForInterval(this.referenceChangeRatios, this.motionStartDelay);
-		const motionDetected = this.hasRequiredRatioAboveThreshold(motionDetectionRatios, this.motionDetectionRequiredRatio);
-		const roomSettled = this.previousChangeRatios.length >= this.maxRatioHistorySize && this.hasRequiredRatioBelowThreshold(this.previousChangeRatios, this.roomSettledRequiredRatio);
+		const motionDetected = this.hasRequiredRatioAboveThreshold(
+			motionDetectionRatios,
+			this.motionDetectionRequiredRatio
+		);
+		const roomSettled =
+			this.previousChangeRatios.length >= this.maxRatioHistorySize &&
+			this.hasRequiredRatioBelowThreshold(this.previousChangeRatios, this.roomSettledRequiredRatio);
 
 		if (motionDetected) {
 			if (!this.motionActive) {
@@ -651,7 +664,6 @@ class CameraMotionDetection {
 			}, this.motionStopDelay);
 		}
 
-		
 		if (roomSettled) {
 			logger.info("Room settled, new reference image stored");
 			this.referenceImageData = currentImageData;
@@ -1472,7 +1484,11 @@ function initWallpanel() {
 				}
 			} else if (isActive()) {
 				if (config.idle_time > 0 && Date.now() - this.idleSince >= config.idle_time * 1000) {
-					if (!config.camera_motion_detection_stop_screensaver || !this.cameraMotionDetection || !this.cameraMotionDetection.motionActive) {
+					if (
+						!config.camera_motion_detection_stop_screensaver ||
+						!this.cameraMotionDetection ||
+						!this.cameraMotionDetection.motionActive
+					) {
 						this.startScreensaver();
 					}
 				}
