@@ -95,3 +95,13 @@ You can stop the screensaver with the javascript code below from a browser mod s
 ```javascript
 document.querySelector("home-assistant").shadowRoot.querySelector("home-assistant-main").shadowRoot.querySelector("wallpanel-view").stopScreensaver();
 ```
+
+You can also navigate to the next or previous image programmatically:
+
+```javascript
+document.querySelector("home-assistant").shadowRoot.querySelector("home-assistant-main").shadowRoot.querySelector("wallpanel-view").nextImage();
+```
+
+```javascript
+document.querySelector("home-assistant").shadowRoot.querySelector("home-assistant-main").shadowRoot.querySelector("wallpanel-view").previousImage();
+```
