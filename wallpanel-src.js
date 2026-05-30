@@ -1157,18 +1157,25 @@ function setSidebarVisibility(hidden) {
 	try {
 		const drawer = elHaMain.shadowRoot.querySelector("ha-drawer");
 		if (drawer) {
-			const sidebar = drawer.shadowRoot.querySelector("aside");
+			// HA 2026.6+: ha-drawer was rewritten using Webawesome; sidebar is now
+			// .sidebar-shell. Fall back to <aside> for HA < 2026.6.
+			const sidebar = drawer.shadowRoot.querySelector(".sidebar-shell")
+				|| drawer.shadowRoot.querySelector("aside");
+			// CSS variable also changed in 2026.6: --mdc-drawer-width → --ha-sidebar-width
+			const sidebarWidthVar = sidebar && sidebar.classList.contains("sidebar-shell")
+				? "--ha-sidebar-width"
+				: "--mdc-drawer-width";
 			if (sidebar) {
 				if (hidden) {
 					// Using style.display = hidden will cause the companion app to freeze
 					// See https://github.com/j-a-n/lovelace-wallpanel/issues/383
 					sidebar.style.opacity = 0;
 					sidebar.style.maxWidth = "0px";
-					elHaMain.style.setProperty("--mdc-drawer-width", "env(safe-area-inset-left)");
+					elHaMain.style.setProperty(sidebarWidthVar, "env(safe-area-inset-left)");
 				} else {
 					sidebar.style.opacity = 1;
 					sidebar.style.maxWidth = "";
-					elHaMain.style.removeProperty("--mdc-drawer-width");
+					elHaMain.style.removeProperty(sidebarWidthVar);
 				}
 				window.dispatchEvent(new Event("resize"));
 			}
