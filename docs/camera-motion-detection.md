@@ -8,7 +8,7 @@ For Fully Kiosk Browser, enable "Enable Webcam Access (PLUS)" in `Web Content Se
 * Set `camera_motion_detection_enabled` to `true` to enable motion detection.
 * Set `camera_motion_detection_stop_screensaver` to `true` to stop the screensaver when motion is detected.
 * With `camera_motion_detection_set_entity`, you can reference an `input_boolean` entity that is updated to mirror the motion detection state (on = motion detected, off = no motion detected).
-* If motion is detected for the duration specified by `camera_motion_detection_motion_start_delay`, the motion detection status is reset to *motion detected*.
+* If motion is detected for the duration specified by `camera_motion_detection_motion_start_delay`, the motion detection status is set to *motion detected*.
 * Once the duration specified by `camera_motion_detection_motion_stop_delay` has elapsed without any motion being detected, the motion detection status is reset to *no motion detected*.
 * Use `camera_motion_detection_facing_mode` (`user`, `environment`, `left` or `right`) to configure which camera should be used (default: `user`).
 * With `camera_motion_detection_threshold` the percentage of changed pixels required for detection can be defined (default: `5`).

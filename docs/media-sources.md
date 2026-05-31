@@ -180,6 +180,7 @@ To access the Immich API, first generate an [API key](https://immich.app/docs/fe
 Then you can configure WallPanel to use the Immich API.
 You need to set the `image_url` to `immich+<your api url>` and add the API key to `immich_api_keys`.
 Multiple API keys can be added to use multiple accounts on the same server.
+The timeout for immich API requests can be set using the `immich_api_request_timeout` configuration option and defaults to 15 seconds.
 With the config option `immich_shared_albums` (`true` / `false`) you can include or exclude shared albums.
 To restrict the media items to be retrieved to specific albums, you can configure a list of album names in `immich_album_names`.
 Alternatively you can configure a list of tag names in `immich_tag_names`.

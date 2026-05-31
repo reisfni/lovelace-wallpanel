@@ -3,7 +3,7 @@
  * Released under the GNU General Public License v3.0
  */
 
-const version = "4.64.0";
+const version = "4.65.0";
 const defaultConfig = {
 	enabled: false,
 	enabled_on_views: [],
@@ -53,6 +53,7 @@ const defaultConfig = {
 	iframe_load_unchanged: false,
 	iframe_interaction: false,
 	immich_api_keys: [],
+	immich_api_request_timeout: 15,
 	immich_album_names: [],
 	immich_shared_albums: true,
 	immich_tag_names: [],
@@ -1159,12 +1160,10 @@ function setSidebarVisibility(hidden) {
 		if (drawer) {
 			// HA 2026.6+: ha-drawer was rewritten using Webawesome; sidebar is now
 			// .sidebar-shell. Fall back to <aside> for HA < 2026.6.
-			const sidebar = drawer.shadowRoot.querySelector(".sidebar-shell")
-				|| drawer.shadowRoot.querySelector("aside");
+			const sidebar = drawer.shadowRoot.querySelector(".sidebar-shell") || drawer.shadowRoot.querySelector("aside");
 			// CSS variable also changed in 2026.6: --mdc-drawer-width → --ha-sidebar-width
-			const sidebarWidthVar = sidebar && sidebar.classList.contains("sidebar-shell")
-				? "--ha-sidebar-width"
-				: "--mdc-drawer-width";
+			const sidebarWidthVar =
+				sidebar && sidebar.classList.contains("sidebar-shell") ? "--ha-sidebar-width" : "--mdc-drawer-width";
 			if (sidebar) {
 				if (hidden) {
 					// Using style.display = hidden will cause the companion app to freeze
@@ -2940,7 +2939,7 @@ function initWallpanel() {
 				};
 				if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout !== "undefined") {
 					logger.debug("Using AbortSignal");
-					options.signal = AbortSignal.timeout(10000); // 10 seconds timeout
+					options.signal = AbortSignal.timeout(config.immich_api_request_timeout * 1000);
 				}
 
 				const response = await fetch(requestUrl, options);

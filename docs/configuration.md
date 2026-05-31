@@ -50,6 +50,7 @@ You can set the following configuration parameters for every individual Home Ass
 | iframe_load_unchanged            | Should an iframe be reloaded once its display time has expired, even if its URL remains the same?      | false     |
 | iframe_interaction               | Allow interaction with the iframe content?                                                             | false     |
 | immich_api_keys                  | API keys that are used for authentication at the [immich API](media-sources.md#immich-api)             | []        |
+| immich_api_request_timeout       | Timeout in seconds for immich API requests.                                                            | 15        |
 | immich_shared_albums             | Display media from shared Immich albums.                                                               | true      |
 | immich_album_names               | Display media only from the specified Immich albums.                                                   | []        |
 | immich_tag_names                 | Display media only with the specified tags.                                                            | []        |
