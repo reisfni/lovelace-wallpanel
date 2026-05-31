@@ -1309,6 +1309,8 @@ function initWallpanel() {
 			this.updatingMediaList = false;
 			this.updatingMedia = false;
 			this.lastMediaUpdate = 0;
+			this.isPaused = false;
+			this.mediaTimeElapsedBeforePause = 0;
 			this.lastImageUrlEntityValue = null;
 			this.blockEventsUntil = 0;
 			this.screensaverStartedAt;
@@ -2088,6 +2090,8 @@ function initWallpanel() {
 			setTimeout(function () {
 				// Restart CSS animation.
 				wp.progressBar.style.animation = `horizontalProgress ${config.display_time}s linear`;
+				// Do not advance progress bar if slideshow is paused.
+				wp.progressBar.style.animationPlayState = wp.isPaused ? "paused" : "running";
 			}, 25);
 		}
 
@@ -2291,6 +2295,21 @@ function initWallpanel() {
 			if (config.show_progress_bar) {
 				this.screensaverContainer.appendChild(this.progressBarContainer);
 			}
+
+			this.pauseIndicator = document.createElement("div");
+			this.pauseIndicator.id = "wp-pause-indicator";
+			this.pauseIndicator.innerHTML = "⏸️";
+			this.pauseIndicator.style.position = "absolute";
+			this.pauseIndicator.style.top = "1rem";
+			this.pauseIndicator.style.left = "1rem";
+			this.pauseIndicator.style.fontSize = "4rem";
+			this.pauseIndicator.style.lineHeight = "1";
+			this.pauseIndicator.style.color = "white";
+			this.pauseIndicator.style.filter = "drop-shadow(0 0 8px rgba(0,0,0,0.8))";
+			this.pauseIndicator.style.zIndex = "9999";
+			this.pauseIndicator.style.pointerEvents = "none";
+			this.pauseIndicator.style.display = "none";
+			this.screensaverContainer.appendChild(this.pauseIndicator);
 
 			this.infoContainer = document.createElement("div");
 			this.infoContainer.id = "wallpanel-screensaver-info-container";
@@ -3858,6 +3877,9 @@ function initWallpanel() {
 					logger.debug(`Media entity ${mediaEntity} state unchanged, but media_entity_load_unchanged = true`);
 				} else {
 					this.lastMediaUpdate = Date.now();
+					if (this.isPaused) {
+						this.mediaTimeElapsedBeforePause = 0;
+					}
 					this.restartProgressBarAnimation();
 					return;
 				}
@@ -3865,6 +3887,9 @@ function initWallpanel() {
 			}
 
 			this.lastMediaUpdate = Date.now();
+			if (this.isPaused) {
+				this.mediaTimeElapsedBeforePause = 0;
+			}
 			const activeElement = this.getActiveMediaElement();
 			if (
 				(sourceType === "iframe" || sourceType === "embed") &&
@@ -3894,6 +3919,11 @@ function initWallpanel() {
 
 		_switchActiveMedia(newElement, crossfadeMillis = null) {
 			this.lastMediaUpdate = Date.now();
+			if (this.isPaused) {
+				// Case of calls to nextImage()/previousImage() when slideshow is paused.
+				// Preserve paused state.
+				this.mediaTimeElapsedBeforePause = 0;
+			}
 			this.imageOneContainer.style.transition = `opacity ${crossfadeMillis}ms ease-in-out`;
 			this.imageTwoContainer.style.transition = `opacity ${crossfadeMillis}ms ease-in-out`;
 
@@ -4044,6 +4074,11 @@ function initWallpanel() {
 			this.lastMediaUpdate = Date.now();
 			document.documentElement.style.overflow = "hidden";
 
+			// Reset state relevant to slideshow pause.
+			this.isPaused = false;
+			this.mediaTimeElapsedBeforePause = 0;
+			this.pauseIndicator.style.display = "none";
+
 			this.createInfoBoxContent();
 
 			this.style.visibility = "visible";
@@ -4077,6 +4112,7 @@ function initWallpanel() {
 			return Boolean(this.screensaverStartedAt) && this.screensaverStartedAt > 0;
 		}
 
+		// API for use with Browser Mod.
 		stopScreensaver(fadeOutTime = 0.0) {
 			logger.debug("Stop screensaver");
 
@@ -4148,7 +4184,7 @@ function initWallpanel() {
 				logger.debug("Setting screen to black");
 				this.screensaverOverlay.style.background = "#000000";
 			} else if (config.show_images) {
-				if (now - this.lastMediaUpdate >= config.display_time * 1000) {
+				if (!this.isPaused && now - this.lastMediaUpdate >= config.display_time * 1000) {
 					this.switchActiveMedia("display_time_elapsed");
 				}
 				if (now - this.lastMediaListUpdate >= config.media_list_update_interval * 1000) {
@@ -4250,6 +4286,7 @@ function initWallpanel() {
 			this.switchActiveMedia("user_action");
 		}
 
+		// API for use with Browser Mod.
 		async nextImage() {
 			if (this.updatingMedia) {
 				logger.debug("Already switching media");
@@ -4265,6 +4302,7 @@ function initWallpanel() {
 			}
 		}
 
+		// API for use with Browser Mod.
 		async previousImage() {
 			if (this.updatingMedia) {
 				logger.debug("Already switching media");
@@ -4277,6 +4315,35 @@ function initWallpanel() {
 				await this.switchActiveMedia("user_action");
 			} finally {
 				this.mediaListDirection = prevDirection;
+			}
+		}
+
+		// API for use with Browser Mod.
+		togglePlayPause() {
+			logger.debug("Toggle play/pause");
+
+			if (!this.screensaverRunning()) return;
+
+			if (this.isPaused) {
+				// Play.
+				this.isPaused = false;
+				this.lastMediaUpdate = Date.now() - (this.mediaTimeElapsedBeforePause || 0);
+				this.pauseIndicator.style.display = "none";
+				this.progressBar.style.animationPlayState = "running";
+
+				this.startPlayingActiveMedia();
+			} else {
+				// Pause.
+				this.isPaused = true;
+				this.mediaTimeElapsedBeforePause = Date.now() - this.lastMediaUpdate;
+				this.lastMediaUpdate = Date.now();
+				this.pauseIndicator.style.display = "block";
+				this.progressBar.style.animationPlayState = "paused";
+
+				const videoElement = this.getActiveMediaElement(true);
+				if (videoElement && typeof videoElement.pause === "function") {
+					videoElement.pause();
+				}
 			}
 		}
 

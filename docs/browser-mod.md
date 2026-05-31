@@ -90,18 +90,21 @@ wallpanel:
 ```
 
 ## Browser Mod service
-You can stop the screensaver with the javascript code below from a browser mod service.
+
+You can call WallPanel functions programmatically from a Browser Mod service using Javascript.
+
+Example of how to call into Wallpanel from Browser Mod:
 
 ```javascript
 document.querySelector("home-assistant").shadowRoot.querySelector("home-assistant-main").shadowRoot.querySelector("wallpanel-view").stopScreensaver();
 ```
 
-You can also navigate to the next or previous image programmatically:
+### Available functions:
 
-```javascript
-document.querySelector("home-assistant").shadowRoot.querySelector("home-assistant-main").shadowRoot.querySelector("wallpanel-view").nextImage();
-```
+| Function | Description |
+|---|---|
+| `stopScreensaver()` | Stop the screensaver |
+| `togglePlayPause()` | Play or pause the slideshow |
+| `nextImage()` | Navigate to the next image |
+| `previousImage()` | Navigate to the previous image |
 
-```javascript
-document.querySelector("home-assistant").shadowRoot.querySelector("home-assistant-main").shadowRoot.querySelector("wallpanel-view").previousImage();
-```
