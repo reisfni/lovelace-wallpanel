@@ -1538,9 +1538,9 @@ function initWallpanel() {
 			this.screensaverContainer.style.position = "fixed";
 			this.screensaverContainer.style.pointerEvents = "auto";
 			this.screensaverContainer.style.top = 0;
+			this.screensaverContainer.style.right = 0;
+			this.screensaverContainer.style.bottom = 0;
 			this.screensaverContainer.style.left = 0;
-			this.screensaverContainer.style.width = "100vw";
-			this.screensaverContainer.style.height = "100vh";
 			this.screensaverContainer.style.background = "#000000";
 			this.screensaverContainer.style.overflow = "hidden";
 
