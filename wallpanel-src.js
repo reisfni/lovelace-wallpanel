@@ -2413,16 +2413,6 @@ function initWallpanel() {
 			window.addEventListener("resize", resizeHandler);
 			this.windowEventHandlers.push({ eventName: "resize", handler: resizeHandler });
 
-			const handleVisibilityChange = () => {
-				logger.debug("handleVisibilityChange", document.hidden);
-				if (!document.hidden && wp.screensaverRunning()) {
-					// CSS vw/vh viewport units in iOS WKWebView report stale values after the app is backgrounded and restored.
-					// They do not recompute until a resize event fires, which does not happen reliably on app resume.
-					window.dispatchEvent(new Event("resize"));
-				}
-			};
-			document.addEventListener("visibilitychange", handleVisibilityChange);
-
 			const hassMoreInfoHandler = () => {
 				try {
 					if (wp.screensaverRunning()) {
